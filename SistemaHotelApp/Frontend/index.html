@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Hotelera</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; color: #333; }
+        h1, h2 { color: #1a365d; }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #2b6cb0; color: white; }
+        tr:nth-child(even) { background-color: #f7fafc; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 95%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #2b6cb0; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #2c5282; }
+        .mensaje { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>🏨 Sistema de Gestión Hotelera</h1>
+
+    <div class="container">
+        <!-- FORMULARIO PARA REGISTRAR RESERVA -->
+        <div class="card">
+            <h2>Nueva Reserva</h2>
+            <form id="formReserva">
+                <div class="form-group">
+                    <label>ID Huésped:</label>
+                    <input type="number" id="idHuesped" required value="1">
+                </div>
+                <div class="form-group">
+                    <label>ID Habitación:</label>
+                    <input type="number" id="idHabitacion" required value="2">
+                </div>
+                <div class="form-group">
+                    <label>Fecha Entrada:</label>
+                    <input type="date" id="fechaEntrada" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha Salida:</label>
+                    <input type="date" id="fechaSalida" required>
+                </div>
+                <button type="submit">Registrar Reserva</button>
+            </form>
+            <div id="mensaje" class="mensaje"></div>
+        </div>
+
+        <!-- TABLA DE RESERVAS (VISTA SQL) -->
+        <div class="card" style="flex: 2;">
+            <h2>Reservas Registradas (vw_ReservasDetalladas)</h2>
+            <button onclick="cargarReservas()">Actualizar Lista</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Huésped</th>
+                        <th>DNI</th>
+                        <th>Habitación</th>
+                        <th>Tipo</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaReservas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <br>
+
+    <!-- TABLA DE SERVICIOS CONSUMIDOS -->
+    <div class="card">
+        <h2>Servicios consumidos por Reserva (vw_ServiciosPorReserva)</h2>
+        <button onclick="cargarServicios()">Actualizar Servicios</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Servicio N°</th>
+                    <th>Reserva N°</th>
+                    <th>Huésped</th>
+                    <th>Atendido por</th>
+                    <th>Detalle</th>
+                    <th>Cantidad</th>
+                    <th>Importe</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody id="tablaServicios"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5221/api';
+
+        // Cargar reservas desde la API
+        async function cargarReservas() {
+            try {
+                const res = await fetch(`${API_URL}/reservas`);
+                const data = await res.json();
+                const tbody = document.getElementById('tablaReservas');
+                tbody.innerHTML = '';
+
+                data.forEach(r => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.id_reserva}</td>
+                            <td>${r.huesped}</td>
+                            <td>${r.dni_huesped}</td>
+                            <td>${r.nro_habitacion}</td>
+                            <td>${r.tipo_habitacion}</td>
+                            <td>${r.fecha_entrada}</td>
+                            <td>${r.fecha_salida}</td>
+                            <td><strong>${r.estado_reserva}</strong></td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error('Error al cargar reservas:', err);
+            }
+        }
+
+        // Cargar servicios desde la API
+        async function cargarServicios() {
+            try {
+                const res = await fetch(`${API_URL}/servicios`);
+                const data = await res.json();
+                const tbody = document.getElementById('tablaServicios');
+                tbody.innerHTML = '';
+
+                data.forEach(s => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${s.id_servicio}</td>
+                            <td>${s.id_reserva}</td>
+                            <td>${s.huesped}</td>
+                            <td>${s.atendido_por}</td>
+                            <td>${s.detalle}</td>
+                            <td>${s.cantidad}</td>
+                            <td>$${s.importe}</td>
+                            <td>${s.fecha_hora}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error('Error al cargar servicios:', err);
+            }
+        }
+
+        // Registrar nueva reserva (Llama al Stored Procedure mediante POST)
+        document.getElementById('formReserva').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mensajeDiv = document.getElementById('mensaje');
+            mensajeDiv.innerText = 'Procesando...';
+
+            const payload = {
+                idHuesped: parseInt(document.getElementById('idHuesped').value),
+                idHabitacion: parseInt(document.getElementById('idHabitacion').value),
+                fechaEntrada: document.getElementById('fechaEntrada').value,
+                fechaSalida: document.getElementById('fechaSalida').value
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/reservas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    mensajeDiv.style.color = 'green';
+                    mensajeDiv.innerText = result.mensaje;
+                    cargarReservas();
+                } else {
+                    mensajeDiv.style.color = 'red';
+                    mensajeDiv.innerText = result.mensaje || 'Error al registrar reserva';
+                }
+            } catch (err) {
+                mensajeDiv.style.color = 'red';
+                mensajeDiv.innerText = 'Error de conexión con la API';
+            }
+        });
+
+        // Cargar datos al iniciar
+        cargarReservas();
+        cargarServicios();
+    </script>
+</body>
+</html>
