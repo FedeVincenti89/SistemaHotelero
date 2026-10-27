@@ -1,0 +1,15 @@
+# Archivos de datos de SQL Server
+*.mdf
+*.ndf
+*.ldf
+
+# Discos simulados
+RAID5 (A)/
+RAID5 (B)/
+SDD (E)/
+
+# Archivos de compilación de C# .NET
+bin/
+obj/
+.vscode/
+*.user
